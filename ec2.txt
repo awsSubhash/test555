@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyEC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0a3c3a20c09d6f377"  
+      InstanceType: "t2.micro"          
+      KeyName: "linux"          
+
+Outputs:
+  PublicIP:
+    Description: "Public IP address of the EC2 instance"
+    Value: !GetAtt MyEC2Instance.PublicIp
