@@ -1,0 +1,1 @@
+cmd.exe /C  C:\Macros\Tools\PDF2TXT\bin\pdf2txt.exe -table -fixed 3 -nopgbrk C:\Macros\Tools\SourceFiles\bom.pdf C:\Macros\Tools\PDF2TXT\scripts\bom.txt

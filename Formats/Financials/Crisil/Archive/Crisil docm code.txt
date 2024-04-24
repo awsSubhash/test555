@@ -1,0 +1,770 @@
+Sub MergeMultiDocsIntoOne()
+  Dim dlgFile As FileDialog
+  Dim nTotalFiles As Integer
+  Dim nEachSelectedFile As Integer
+  
+  Dim doc As Document
+    
+    ' Set the document to the active document
+    Set doc = ActiveDocument
+    
+    ' Select the entire document
+    doc.content.Select
+    
+    ' Delete the selection
+    Selection.Delete
+
+  Set dlgFile = Application.FileDialog(msoFileDialogFilePicker)
+ 
+  With dlgFile
+    .AllowMultiSelect = True
+    If .Show <> -1 Then
+      Exit Sub
+    Else
+      nTotalFiles = .SelectedItems.Count
+    End If
+  End With
+ 
+  For nEachSelectedFile = 1 To nTotalFiles
+    Selection.InsertFile dlgFile.SelectedItems.Item(nEachSelectedFile)
+    If nEachSelectedFile < nTotalFiles Then
+      Selection.InsertBreak Type:=wdPageBreak
+'    Else
+'      If nEachSelectedFile = nTotalFiles Then
+'        Exit Sub
+'      End If
+    End If
+  Next nEachSelectedFile
+  
+  ApplyTableBordersToAllPages
+  SetFontSizeAndFontStyle
+  
+  ConvertTextToHeadingWithTOC
+  SetTableWidthToFitPage
+  AutoFitTable
+  InsertTOCAndPageBreak
+  'AddLogoToHeaderWithSize
+  AddLogoToHeaderWithSize1
+  'ShowSaveAsDialog
+  Dialogs(wdDialogFileSaveAs).Show
+  
+  Selection.Collapse Direction:=wdCollapseStart
+    
+    ' Move the cursor to page one
+    Selection.GoTo What:=wdGoToPage, Which:=wdGoToAbsolute, Count:=1
+ ' SetTableFontSize
+  
+End Sub
+Sub ConvertTextToHeadingWithTOC()
+    Dim findTextArray1() As Variant, findTextArray2() As Variant
+    Dim i As Integer
+    Dim findText As Variant
+    Dim doc As Document
+    Dim rng As Range
+    Dim tocRange As Range
+    'Dim tocField As Field
+    Dim tocPage As Range
+    Dim style As style
+    Dim tocField As TableOfContents
+    Dim foundRange As Range
+    
+  
+  Dim pageRange As Range
+    Dim page1Content As Range
+    
+    ' Set the range for the first page
+    Set pageRange = ActiveDocument.Range(Start:=0, End:=ActiveDocument.Range.Information(wdActiveEndPageNumber))
+    
+    ' Set the range for the contents of page 1
+    Set page1Content = pageRange.Duplicate
+    page1Content.End = pageRange.End - 1
+    
+    ' Set the style of page 1 content to Normal
+    page1Content.style = ActiveDocument.Styles("Normal")
+    
+    
+    ' Add your specific words to find in the array
+    findTextArray1 = Array("Assessment Score", "Brief Summary", "Evaluation Approach", _
+    "Executive Summary", "Group overview and Family dynamics", "Company Profile", "Management Details", _
+    "Company – Financial Performance", "Group Company", "Consolidated Financial Performance", "Bank statement analysis", _
+    "Financial Flexibility", "Site Visit (Existing/Proposed Facility)", "Government Registration Verification", "Statutory Compliances", _
+    "Adverse Media Check", "Political Exposure Check", "Credit Bureau Checks", "Checks and References", "Related Parties", "About CRISIL Limited")
+    
+    findTextArray2 = Array("Key highlights", "Group structure and background", "Family tree and dynamics", "Factsheet", "Registrar of Company Details", _
+    "Business Description", "Directors' track record", "Key Management Personnel", "UDIN Verification Status", "Profit and loss account", "Balance sheet", _
+    "Graphs", "Group entity details", "Ownership pattern - Group entities", "Profit and loss account", "Balance sheet", "Operating income for last 3 FY", _
+    "Interest and finance costs for last 3 FY", "Non-operating income for last 3 FY", "Long term debt for Latest FY", "Short-term debt for Latest FY", _
+    "Other Liabilities & Provision for last 3 FY", "Other Current Assets for last 3 FY", "Key financial ratios", "GST analysis", "Sales data comparison", _
+    "Purchase data comparison Yearly", "Revenue mix by product", "Revenue mix by business", "MCA Charges", "Networth of Promoter", "Location for the proposed XXXX dealership:", _
+    "Photographs - Existing/Proposed Facility", "a.  GST Verification", "b.  PAN Card Verification", "ITR", "EPFO", "ESIC", "Summary of Background Verification", "Existing Principals' Feedback", _
+    "Bankers' feedback", "Balance Sheet", "Customer Profile and Demand Side Analysis", "Supply Profile and Supply Side Analysis", "Terms of purchase:", _
+    "Revenue Mix - Product Wise", "Litigations", "Revenue Mix - Customer Wise", "Ownership pattern - Group entities", "NM:", "Notes", "Notes:", "Photographs - Existing/Proposed Facility", "Customers' Feedback")
+    
+    
+    ' Set the document variable to the active document
+    Set doc = ActiveDocument
+    
+'    Set tocRange = doc.Range(Start:=0, End:=0)
+     ' Check if a table of contents exists
+    For Each tocField In doc.TablesOfContents
+        tocField.Delete
+    Next tocField
+       
+    ' Loop through each word in the array
+    For i = LBound(findTextArray1) To UBound(findTextArray1)
+        findText = findTextArray1(i)
+        
+        ' Set the range to search for the text
+        Set rng = doc.content
+        Debug.Print findText
+        ' Find and select the text
+        With rng.Find
+            .ClearFormatting
+            .Text = findText
+            .Forward = True
+            .Wrap = wdFindStop
+            .Execute
+        End With
+        
+        ' Convert the selected text to Heading 1
+        If rng.Find.Found Then
+            rng.style = doc.Styles("Heading 1")
+        End If
+        
+        ' Check if the style exists in the document
+    'If doc.Styles.Exists("Heading 1") Then
+        ' Get the Heading 1 style
+        Set style = doc.Styles("Heading 1")
+        
+        ' Modify the format properties of the Heading 1 style
+        With style
+            .Font.Bold = True
+            .Font.Size = 18
+            .Font.Name = "Arial"
+            .Font.Color = RGB(214, 0, 42)
+            .ParagraphFormat.LeftIndent = InchesToPoints(0#)
+            
+     End With
+     ' Add more format properties as needed
+    'End If
+        ' Clear the range for the next search
+        rng.Collapse Direction:=wdCollapseEnd
+    Next i
+    
+    
+    
+     For i = LBound(findTextArray2) To UBound(findTextArray2)
+        findText = findTextArray2(i)
+        
+        ' Set the range to search for the text
+        Set rng = doc.content
+        Debug.Print findText
+        ' Find and select the text
+        With rng.Find
+            .ClearFormatting
+            .Text = findText
+            .Forward = True
+            .Wrap = wdFindStop
+            .Execute
+        End With
+        
+        ' Convert the selected text to Heading 1
+        If rng.Find.Found Then
+            rng.style = doc.Styles("Heading 2")
+        End If
+        
+        ' Check if the style exists in the document
+    'If doc.Styles.Exists("Heading 1") Then
+        ' Get the Heading 1 style
+        Set style = doc.Styles("Heading 2")
+        
+        ' Modify the format properties of the Heading 1 style
+        With style
+            .Font.Bold = True
+            .Font.Size = 10
+            .Font.Name = "Arial"
+            .Font.Color = RGB(0, 0, 0)
+            .ParagraphFormat.LeftIndent = InchesToPoints(0.1)
+            
+     End With
+     ' Add more format properties as needed
+    'End If
+        ' Clear the range for the next search
+        rng.Collapse Direction:=wdCollapseEnd
+    Next i
+    
+    
+'ActiveDocument.Content.Find.Execute findText:="CRISIL SME Solutions"
+ With ActiveDocument.content.Find
+    .ClearFormatting
+    .Text = "CRISIL SME SOLUTIONS"
+    .Replacement.ClearFormatting
+    .Replacement.Font.Name = "Arial"
+    .Replacement.Font.Size = 22
+    .Replacement.Font.Bold = True
+    .Replacement.Font.Color = RGB(135, 0, 0)
+    .Execute Replace:=wdReplaceAll, Format:=True
+End With
+
+
+'GoToPage2
+
+'SetTableFontSize
+
+'If doc.TablesOfContents.Count = 0 Then
+'' Set the range for the table of contents
+'    Set tocRange = doc.Range(Start:=0, End:=0)
+' '     Check if a table of contents exists
+'    If doc.TablesOfContents.Count > 0 Then
+'        ' Delete the existing table of contents
+'
+'    '    Set tocField = doc.TablesOfContents(1)
+'        tocField.Delete
+'    End If
+'  '   Add the table of contents
+'    Set tocField = doc.TablesOfContents.Add(Range:=tocRange, UseHeadingStyles:=True)
+'
+'    ' Update the table of contents
+'    tocField.Update
+'
+'    End If
+ 
+End Sub
+
+Sub GoToPage2()
+    ' Go to the end of page 1
+    Selection.GoTo What:=wdGoToPage, Which:=wdGoToAbsolute, Count:=1
+    Selection.GoTo What:=wdGoToBookmark, Name:="\page"
+    Selection.Collapse Direction:=wdCollapseEnd
+    
+    ' Insert a blank page
+    'Selection.InsertBreak Type:=wdPageBreak
+    
+    ' Optional: Activate the document window to bring it to the front
+    ActiveWindow.Activate
+    
+    With ActiveDocument.content.Find
+    .ClearFormatting
+    .Text = "CRISIL SME SOLUTIONS"
+    .Replacement.ClearFormatting
+    .Replacement.Font.Name = "Arial"
+    .Replacement.Font.Size = 22
+    .Replacement.Font.Bold = True
+    .Replacement.Font.Color = RGB(135, 0, 0)
+    .Execute Replace:=wdReplaceAll, Format:=True
+End With
+End Sub
+
+Sub SelectTableAndFormat()
+    Dim tbl As Table
+    Dim rng As Range
+    
+    ' Set the table object to the desired table
+    Set tbl = ActiveDocument.Tables(1) ' Change the index or reference to the specific table
+    
+    ' Select the entire table
+    tbl.Range.Select
+    
+    ' Set the font and size for the selected table
+    Set rng = Selection.Range
+    rng.Font.Name = "Arial"
+    rng.Font.Size = 12
+    
+    ' Set the width of the table to fit the window width
+    tbl.AutoFitBehavior wdAutoFitWindow
+        tbl.AllowAutoFit = True
+        'tbl.PreferredWidthType = wdPreferredWidthAuto
+    
+    ' Release the objects
+    Set rng = Nothing
+    Set tbl = Nothing
+End Sub
+Sub InsertTOCAndPageBreak()
+    Dim rng As Range
+    Dim tocRange As Range
+    Dim pageNum As Long
+    
+    ' Go to the second page of the document
+    Set rng = ActiveDocument.GoTo(What:=wdGoToPage, Which:=wdGoToAbsolute, Count:=0)
+     ' Set the desired page number for the page break
+   
+    ' Set the range to the current page
+    Set rng = rng.GoTo(What:=wdGoToBookmark, Name:="\page")
+    
+    ' Insert a table of contents at the beginning of the page
+    Set tocRange = rng.Paragraphs.Add.Range
+    ActiveDocument.TablesOfContents.Add Range:=tocRange, _
+        UseHeadingStyles:=True, _
+        UpperHeadingLevel:=1, _
+        LowerHeadingLevel:=3, _
+        IncludePageNumbers:=True
+    
+    ' Insert a page break after the range
+    rng.Collapse Direction:=wdCollapseEnd
+    rng.InsertBreak Type:=wdPageBreak
+    
+    ' Set the page number to be deleted
+    pageNum = 2
+    
+    ' Go to the specified page
+    Selection.GoTo What:=wdGoToPage, Which:=wdGoToAbsolute, Count:=pageNum
+    
+    ' Select the content of the page
+    Selection.ExtendMode = True
+    Selection.MoveDown Unit:=wdScreen, Count:=1, Extend:=wdExtend
+    
+    ' Delete the selected content
+    Selection.Delete
+    
+    ' Clean up and release the object references
+    Set rng = Nothing
+    Set tocRange = Nothing
+End Sub
+Sub SetTableFontSize()
+    Dim doc As Document
+    Dim tbl As Table
+    Dim rng As Range
+    Dim pageCount As Integer
+    Dim i As Integer
+    Dim totalPages As Integer
+    
+    
+    ' Set the document to the active document
+    Set doc = ActiveDocument
+    totalPages = doc.ComputeStatistics(wdStatisticPages)
+    ' Set the number of pages to skip
+    pageCount = 3
+    
+    ' Loop through each page in the document
+    For i = 1 To pageCount
+        Set rng = doc.GoTo(What:=wdGoToPage, Which:=wdGoToAbsolute, Count:=i)
+        Set rng = rng.GoTo(What:=wdGoToBookmark, Name:="\page")
+    Next i
+    
+    currentPage = 1
+    ' Loop through the remaining pages in the document
+    'Do While Not rng Is Nothing And rng = "About CRISIL Limited"
+    Do While currentPage <= totalPages
+        For Each tbl In rng.Tables
+            ' Set the font size of each cell in the table to Arial 11
+            tbl.Range.Font.Size = 11
+            tbl.Range.Font.Name = "Arial"
+        Next tbl
+        
+        Set rng = rng.GoToNext(What:=wdGoToPage)
+        Set rng = rng.GoTo(What:=wdGoToBookmark, Name:="\page")
+        'Selection.GoTo wdGoToPage, wdGoToAbsolute, currentPage + 1
+        currentPage = currentPage + 1
+        
+    Loop
+    
+'  With ActiveDocument
+'        For i = totalPages To 1 Step -1
+'          Set rng = .Sections(i).Range
+'            If Len(Trim(rng.Text)) = 2 Then ' Check if the section is a blank page
+'                rng.Delete
+'            End If
+'        Next i
+'    End With
+'
+    Set rng = Nothing
+    Set pageRange = Nothing
+    
+    ' Clean up and release the object references
+    Set tbl = Nothing
+    Set rng = Nothing
+    Set doc = Nothing
+End Sub
+Sub AddLogoToHeader()
+    Dim headerRange As Range
+    Dim shape As shape
+    Dim logoPath As String
+    
+    ' Define the path to the logo image
+    'logoPath = "C:\Path\To\Your\Logo.png"
+    
+    ' Define the range of the header
+    Set headerRange = ActiveDocument.Sections(1).Headers(wdHeaderFooterPrimary).Range
+    
+    ' Add the image to the header
+   Set shape = headerRange.InlineShapes.AddPicture("W:\My Documents\Macros\Formats\Financials\Crisil\Crisil_logo.png").ConvertToShape
+    shape.WrapFormat.Type = wdWrapInline  ' Adjust the wrapping style as needed
+    
+    ' Position the logo on the right side of the header
+    shape.RelativeHorizontalPosition = wdRelativeHorizontalPositionMargin
+    shape.Left = 0   ' Align to the right margin
+    shape.Top = 0  ' Adjust the top position as needed
+    shape.LockAspectRatio = msoTrue  ' Lock the aspect ratio of the image
+    
+    ' Set the picture alignment to right
+    headerRange.ParagraphFormat.Alignment = wdAlignParagraphRight
+    
+    ' Refresh the display
+    'ActiveWindow.View.Type = wdPrintView
+    'ActiveWindow.View.Type = wdPrintPreview
+    ActiveWindow.View = wdViewNormal
+    
+End Sub
+
+Sub SetFontSizeAndFontStyle()
+    Dim doc As Document
+    Dim para As Paragraph
+    
+    Set doc = ActiveDocument
+    
+    ' Loop through each paragraph in the document
+    For Each para In doc.Paragraphs
+        With para.Range.Font
+            .Size = 10 ' Set the font size to 10
+            .Name = "Arial" ' Set the font style to Arial
+        End With
+    Next para
+End Sub
+
+
+Sub ApplyTableBordersToAllPages()
+    Dim doc As Document
+    Dim tbl As Table
+    Dim sec As Section
+    Dim hdr As HeaderFooter
+    
+    Set doc = ActiveDocument
+    
+    ' Loop through each section in the document
+    For Each sec In doc.Sections
+        ' Apply table borders in the main body
+        For Each tbl In sec.Range.Tables
+            ApplyBordersToTable tbl
+        Next tbl
+        
+        ' Apply table borders in the headers and footers
+'        For Each hdr In sec.Headers
+'            For Each tbl In hdr.Range.Tables
+'                ApplyBordersToTable tbl
+'            Next tbl
+'        Next hdr
+'
+'        For Each hdr In sec.Footers
+'            For Each tbl In hdr.Range.Tables
+'                ApplyBordersToTable tbl
+'            Next tbl
+'        Next hdr
+    Next sec
+End Sub
+
+Sub ApplyBordersToTable(tbl As Table)
+    With tbl.Borders
+        .InsideLineStyle = wdLineStyleSingle
+'        .InsideLineWidth = wdLineWidth050pt
+        '.LineWidth = Options.DefaultBorderLineWidth
+        .OutsideLineStyle = wdLineStyleSingle
+     '   .OutsideLineWidth = wdLineWidth1pt
+    End With
+End Sub
+
+
+Sub SetTableWidthToFitPage()
+    Dim doc As Document
+    Dim tbl As Table
+    
+    ' Set a reference to the active document
+    Set doc = ActiveDocument
+    
+    ' Loop through each table in the document
+    For Each tbl In doc.Tables
+        ' Set the table width to fit the page
+       ' tbl.PreferredWidth = InchesToPoints(6) ' Adjust the width as needed
+       ' tbl.AllowAutoFit = True
+        tbl.AutoFitBehavior (wdAutoFitWindow)
+    Next tbl
+End Sub
+Sub InsertTOCAndPageBreak1()
+    Dim pageNum As Long
+    
+    ' Set the desired page number for the page break
+    pageNum = 2
+    
+    ' Go to the specified page
+    Selection.GoTo What:=wdGoToPage, Which:=wdGoToAbsolute, Count:=pageNum
+    
+    ' Insert a page break
+    Selection.InsertBreak Type:=wdPageBreak
+    
+    ' Insert a table of contents
+    ActiveDocument.TablesOfContents.Add Range:=Selection.Range, _
+        RightAlignPageNumbers:=True, _
+        UseHeadingStyles:=True, _
+        IncludePageNumbers:=True, _
+        IncludeHyperlinks:=True, _
+        HidePageNumbersInWeb:=True, _
+        UseOutlineLevels:=False
+End Sub
+Sub AddLogoToHeader_new()
+    Dim headerRange As Range
+    Dim headerShape As shape
+    Dim imagePath As String
+    
+    ' Set the header range to the first section's header
+    Set headerRange = ActiveDocument.Sections(1).Headers(wdHeaderFooterPrimary).Range
+    
+        
+    ' Set the path of the image file
+    imagePath = "W:\My Documents\Macros\Formats\Financials\Crisil\Crisil_logo.png"
+    
+    ' Insert the picture in the header
+    Set headerShape = headerRange.InlineShapes.AddPicture(imagePath).ConvertToShape
+    
+    ' Set the picture alignment to right
+'    headerShape.RelativeHorizontalPosition = wdRelativeHorizontalPositionPage
+'    headerShape.Left = wdShapeRight
+    
+    ' Set the alignment of the entire header range to right
+    headerRange.ParagraphFormat.Alignment = wdAlignParagraphRight
+    
+    ' Update the header
+    headerRange.Fields.Update
+End Sub
+
+Sub AddSpaceBeforeAndAfterTables()
+    Dim tbl As Table
+    Dim doc As Document
+    
+    ' Set a reference to the active document
+    Set doc = ActiveDocument
+    
+    ' Loop through each table in the document
+    For Each tbl In doc.Tables
+        ' Add space before and after the table
+        tbl.Range.ParagraphFormat.SpaceBefore = 12 ' Adjust the value as needed
+        tbl.Range.ParagraphFormat.SpaceAfter = 12 ' Adjust the value as needed
+    Next tbl
+    
+    Dialogs(wdDialogFileSaveAs).Show
+    dlg.Filter = "Word Documents (*.docx)|*.docx"
+End Sub
+
+Sub ShowSaveAsDialog()
+    Dim dlg As Object
+    Dim fileName As Variant
+    
+    ' Create a FileDialog object
+    Set dlg = Application.FileDialog(2) ' msoFileDialogSaveAs
+    
+    ' Set the dialog properties
+    dlg.Title = "Save As"
+  '  dlg.Filter = "Word Documents (*.docx)|*.docx"
+    dlg.InitialFileName = "DefaultFileName.docx"
+    
+    Dialogs(wdDialogFileSaveAs).Show
+    
+    ' Display the dialog
+    If dlg.Show = -1 Then
+        ' Get the selected file name
+        fileName = dlg.SelectedItems(1)
+        
+        ' Perform further actions with the file name
+        ' ...
+    End If
+    
+    ' Clean up the FileDialog object
+    Set dlg = Nothing
+End Sub
+Sub ModifyTableColumnWidth()
+    Dim searchWord As String
+    Dim doc As Document
+    Dim tbl As Table
+    Dim foundRange As Range
+    
+    ' Set the search word
+    searchWord = "Case Summary"
+    
+    ' Set a reference to the active document
+    Set doc = ActiveDocument
+    
+    ' Find the search word in the document
+    Set foundRange = doc.content
+    With foundRange.Find
+        .Text = searchWord
+        .Forward = True
+        .Wrap = wdFindStop
+        .Execute
+    End With
+    
+    ' Iterate through each table in the document
+    For Each tbl In doc.Tables
+        ' Check if the search word is found in the table
+        'If Not foundRange Is Nothing And foundRange.InRange(tbl.Range) Then
+        If Not foundRange Is Nothing Then
+            ' Modify the column widths of the table
+            tbl.Columns(1).Width = InchesToPoints(5) ' Adjust the width as needed
+            tbl.Columns(2).Width = InchesToPoints(2) ' Adjust the width as needed
+            ' Add more lines to modify additional columns as needed
+        End If
+    Next tbl
+End Sub
+
+Sub AddLogoToHeader_latest()
+    Dim headerRange As Range
+    Dim headerShape As shape
+    Dim imagePath As String
+    
+    ' Set the header range to the first section's header
+    Set headerRange = ActiveDocument.Sections(1).Headers(wdHeaderFooterPrimary).Range
+    
+    ' Set the path of the image file
+     imagePath = "W:\My Documents\Macros\Formats\Financials\Crisil\Crisil_logo.png"
+    
+    ' Insert the picture in the header
+    Set headerShape = headerRange.InlineShapes.AddPicture(imagePath).ConvertToShape
+    
+    ' Set the size of the logo
+    headerShape.LockAspectRatio = msoFalse
+    headerShape.Height = InchesToPoints(1.18)
+    headerShape.Width = InchesToPoints(1.88)
+    
+    ' Set the picture alignment to right
+    headerShape.RelativeHorizontalPosition = wdRelativeHorizontalPositionPage
+    headerShape.Left = wdShapeRight
+    
+    ' Update the header
+    headerRange.Fields.Update
+End Sub
+
+Sub DeleteBlankPages()
+    Dim doc As Document
+    Dim i As Long
+    Dim numPages As Long
+    Dim rngPage As Range
+    Dim pageContent As String
+    
+    ' Set a reference to the active document
+    Set doc = ActiveDocument
+    
+    ' Get the total number of pages in the document
+    numPages = doc.ComputeStatistics(wdStatisticPages)
+    
+    ' Loop through each page in reverse order
+    For i = numPages To 1 Step -1
+        ' Set the range to the specified page
+        Set rngPage = doc.GoTo(What:=wdGoToPage, Which:=wdGoToAbsolute, Count:=i).Duplicate
+        
+        ' Get the content of the page
+        pageContent = rngPage.Text
+        
+        ' Check if the page is empty or contains only paragraph marks
+        If IsBlankPage(pageContent) Then
+            ' Delete the page
+            rngPage.Delete
+        End If
+    Next i
+End Sub
+
+Function IsBlankPage(content As String) As Boolean
+    Dim paragraphMarks As Long
+    Dim i As Long
+    Dim currentChar As String
+    
+    ' Initialize the count of paragraph marks
+    paragraphMarks = 0
+    
+    ' Count the paragraph marks in the content
+    For i = 1 To Len(content)
+        currentChar = Mid(content, i, 1)
+        If currentChar = vbCr Then
+            paragraphMarks = paragraphMarks + 1
+        End If
+    Next i
+    
+    ' Check if the content consists only of paragraph marks
+    If paragraphMarks = Len(content) - 1 Then
+        IsBlankPage = True
+    Else
+        IsBlankPage = False
+    End If
+End Function
+
+Sub AddLogoToHeaderWithSize()
+    Dim doc As Document
+    Dim headerRange As Range
+    Dim headerShape As shape
+    Dim imagePath As String
+    Dim i As Long
+    
+    ' Set a reference to the active document
+    Set doc = ActiveDocument
+    
+    ' Loop through each section in reverse order
+    For i = doc.Sections.Count To 1 Step -1
+        ' Check if the section has a header
+        If doc.Sections(i).Headers(wdHeaderFooterPrimary).Exists Then
+            ' Set the header range to the section's header
+            Set headerRange = doc.Sections(i).Headers(wdHeaderFooterPrimary).Range
+            
+            ' Clear existing header contents
+            headerRange.Delete
+            
+            ' Set the path of the image file
+            imagePath = "W:\My Documents\Macros\Formats\Financials\Crisil\Crisil_logo.png" ' Update with the actual image file path
+            
+            ' Insert the picture in the header
+            Set headerShape = headerRange.InlineShapes.AddPicture(imagePath).ConvertToShape
+            
+            ' Set the size of the logo
+            headerShape.LockAspectRatio = msoFalse
+'            headerShape.Height = InchesToPoints(1.18)
+'            headerShape.Width = InchesToPoints(1.88)
+            
+            ' Set the picture alignment to right
+            headerShape.RelativeHorizontalPosition = wdRelativeHorizontalPositionPage
+            headerShape.Left = InchesToPoints(6.5) ' Adjust the value as needed
+            
+            ' Update the header
+            headerRange.Fields.Update
+        End If
+    Next i
+End Sub
+
+Sub AutoFitTable()
+    Dim tbl As Table
+    Dim i As Long
+    
+    ' Iterate through each table in the document
+    For Each tbl In ActiveDocument.Tables
+        ' Autofit the table to contents
+        tbl.AutoFitBehavior (wdAutoFitContent)
+        
+        ' Check if the table exceeds the window width
+        If tbl.Range.Information(wdWithInTable) > ActiveWindow.Width Then
+            ' Autofit the table to window
+            tbl.AutoFitBehavior (wdAutoFitWindow)
+        End If
+    Next tbl
+End Sub
+
+Sub AddLogoToHeaderWithSize1()
+    Dim headerRange As Range
+    Dim headerShape As shape
+    Dim imagePath As String
+    
+    ' Set the header range to the first section's header
+    Set headerRange = ActiveDocument.Sections(1).Headers(wdHeaderFooterPrimary).Range
+    
+    ' Clear existing header contents
+    headerRange.Delete
+    
+    ' Set the path of the image file
+    imagePath = "W:\Shared With Me \Macros\Formats\Financials\Crisil\Crisil_logo.png" ' Update with the actual image file path
+    
+    ' Insert the picture in the header
+    Set headerShape = headerRange.InlineShapes.AddPicture(imagePath).ConvertToShape
+    
+    ' Set the picture alignment to right
+    headerShape.RelativeHorizontalPosition = wdRelativeHorizontalPositionPage
+    headerShape.Left = InchesToPoints(6.5) ' Adjust the value as needed
+    headerShape.Top = InchesToPoints(0.01)  ' Adjust the value as needed
+    
+    ' Update the header
+    headerRange.Fields.Update
+     ActiveWindow.View.SeekView = wdSeekMainDocument
+End Sub
+

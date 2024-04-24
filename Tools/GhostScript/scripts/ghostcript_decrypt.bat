@@ -1,0 +1,1 @@
+cmd.exe /C C:\Macros\Tools\GhostScript\bin\ghostscript.exe -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -dDEVICEWIDTHPOINTS=595 -dDEVICEHEIGHTPOINTS=842 -dPDFFitPage -sOutputFile=unencrypted.pdf -c .setpdfwrite -f c.pdf

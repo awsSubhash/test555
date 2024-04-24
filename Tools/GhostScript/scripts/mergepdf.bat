@@ -1,0 +1,1 @@
+cmd.exe /C ghostscript1.exe -dNOPAUSE -sDEVICE=pdfwrite -dDEVICEWIDTHPOINTS=595 -dDEVICEHEIGHTPOINTS=842 -dPDFFitPage -sOUTPUTFILE=combine.pdf -dBATCH c1.pdf c.pdf bom.pdf 

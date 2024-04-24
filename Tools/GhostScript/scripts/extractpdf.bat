@@ -1,0 +1,1 @@
+cmd.exe /C ghostscript1.exe -sDEVICE=txtwrite -o extractedText.txt c.pdf -c quit

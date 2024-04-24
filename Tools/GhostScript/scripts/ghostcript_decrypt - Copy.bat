@@ -1,0 +1,1 @@
+cmd.exe /C ghostscript1.exe -sDEVICE=pdfwrite -dDEVICEWIDTHPOINTS=595 -dDEVICEHEIGHTPOINTS=842 -dPDFFitPage -dFIXEDMEDIA -o destination.pdf -f bom.pdf 

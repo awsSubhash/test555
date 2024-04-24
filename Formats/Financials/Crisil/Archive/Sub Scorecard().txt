@@ -1,0 +1,738 @@
+Sub Scorecard()
+
+Application.ScreenUpdating = False
+Application.EnableEvents = False
+Application.DisplayAlerts = False
+Application.Calculation = xlCalculationManual
+
+
+Dim ws As Worksheet, x As Long, wbs As Workbook, wsm As Workbook, wbd As Workbook, getfile_F As String, getfile_B As Variant, getfile_C As String
+Dim y As Long, l As Integer, a As Integer, k As Integer, i As Integer, arr1 As Variant, arr2 As Variant, j As Long, lr As Long, f_sht As Boolean, str1 As String
+Dim savePath As Variant, wd As Worksheet, wkdest As Worksheet, sh As Variant, wk As Worksheet
+Dim defaultFileName As String, rng_adr As Range, b As Integer
+Dim inputText As String, outputText As String, cell As Range, valueToDivide As Variant
+Dim targetColor As Long, newHeight As Single, newWidth As Single
+Dim str As String, str2 As String, rng As Range
+Dim userInput As Integer, FinCAM As Integer, fincam_crisil As String
+Dim w_pointer As Workbook, wfc As Workbook
+Dim optionsList As String
+    optionsList = "Scoring Model 1,Scoring Model 2,Scoring Model 3"
+
+targetColor = RGB(135, 0, 0)
+' Display Save As dialogue box
+    
+Set wbd = ActiveWorkbook
+x = 0
+
+Crisil_Form.Show
+userInput = wbd.Sheets(1).Range("O1").Value
+FinCAM = wbd.Sheets(1).Range("O2").Value
+
+wbd.Sheets(1).Range("O1").Value = ""
+wbd.Sheets(1).Range("O2").Value = ""
+
+If FinCAM = 2 Then fincam_crisil = Application.GetOpenFilename(FileFilter:="xlsx(*.xlsx), *.xlsx", Title:="Select Crisil Financial CAM", MultiSelect:=False)
+
+If getfile_F = "" Then getfile_F = Application.GetOpenFilename(FileFilter:="xlsx(*.xlsx), *.xlsx", Title:="Select NC Financial CAM", MultiSelect:=False)
+If getfile_B = "" Then getfile_B = Application.GetOpenFilename(FileFilter:="xlsx(*.xlsx), *.xlsx", Title:="Select Banking CAM", MultiSelect:=True)
+'If getfile_C = "" Then getfile_C = Application.GetOpenFilename(FileFilter:="xlsx(*.xlsx), *.xlsx", Title:="Select Consolidation CAM", MultiSelect:=False)
+
+If getfile_F <> "False" Then
+GoTo start
+Else
+Exit Sub
+End If
+
+start:
+On Error GoTo 0
+
+Set wbs = Workbooks.Open(getfile_F, False)
+
+If FinCAM = 2 Then Set wfc = Workbooks.Open(fincam_crisil, False)
+
+
+'...updating small report scoring
+
+'Set wsm = Workbooks.Open("W:\My Documents\Macros\Formats\Financials\Crisil\Scoring Models - CRISIL Revised.xlsx", False)
+Set wsm = Workbooks.Open("W:\Shared With Me\Macros\Formats\Financials\Crisil\Scoring Models - CRISIL Revised.xlsx", False)
+
+'userInput = Application.InputBox("Please enter the Model number (1-3)", Default:="2")
+
+'If CDbl(userInput) < 1 Or CDbl(userInput) > 3 Then
+'MsgBox "Invalid Model number, please select between 1 to 3"
+'userInput = Application.InputBox("Please enter the Model number (1-3)", Default:="2")
+'End If
+
+wsm.Worksheets("Input").Unprotect Password:="crisilcamnc"
+wsm.Worksheets("Input").Range("D5").Value = "Scoring Model " & userInput
+wsm.Worksheets("Input").Range("D3").Value = "Quick Financial Profiling Report - S"
+
+Set wd = wsm.Worksheets("Scoring-SmallReport")
+wd.Unprotect Password:="crisilcamnc"
+
+wsm.Worksheets("Input").Unprotect Password:="crisilcamnc"
+
+wsm.Worksheets("Input").Unprotect Password:="crisilcamnc"
+
+str = wbs.Worksheets("Business Profile").Range("D13").Value
+j = DateDiff("m", DateValue(str), Date)
+y = (j / 12) - 1
+    
+' Key Indicators
+wd.Range("C9:E13").Interior.Color = RGB(255, 255, 255)
+
+'vintage
+If y < 7 Then
+wd.Range("E9").Interior.Color = RGB(255, 0, 0)
+ElseIf y > 10 Then
+wd.Range("E9").Interior.Color = RGB(146, 208, 80)
+Else
+wd.Range("E9").Interior.Color = RGB(255, 255, 0)
+End If
+
+'crime check
+If wbs.Worksheets("Crime-Check (A1)").Range("D9").Value = "High Risk" Then
+wd.Range("E10").Interior.Color = RGB(255, 0, 0)
+ElseIf wbs.Worksheets("Crime-Check (A1)").Range("D9").Value = "Low Risk" Then
+wd.Range("E10").Interior.Color = RGB(255, 255, 0)
+Else
+wd.Range("E9").Interior.Color = RGB(146, 208, 80)
+End If
+
+On Error Resume Next
+'my neta
+Set rng = wbs.Worksheets("MyNeta").Range("D:D").Find("Match Found")
+If Not rng Is Nothing Then
+wd.Range("E11").Interior.Color = RGB(255, 0, 0)
+End If
+
+If wd.Range("E11").Interior.Color = RGB(255, 255, 255) Then
+    Set rng = wbs.Worksheets("MyNeta").Range("D:D").Find("No Match")
+    If Not rng Is Nothing Then
+    wd.Range("E11").Interior.Color = RGB(146, 208, 80)
+    End If
+End If
+
+If wd.Range("E11").Interior.Color = RGB(255, 255, 255) Then
+wd.Range("E11").Interior.Color = RGB(255, 255, 0)
+End If
+
+'EPFO Delay ... contd after T-43
+
+
+'............................end of top section of Key indicators
+
+Set ws = wbs.Worksheets("Ratio - CRISIL(1)")
+wd.Range("C17:E26").Interior.Color = RGB(255, 255, 255)
+
+On Error Resume Next
+
+'OPBDIT Margin
+If ws.Range("C3").Value / 100 < 0.03 Then
+'wd.Range("E17").Value = ws.Range("C3").Value
+wd.Range("E17").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("C3").Value / 100 > 0.05 Then
+'wd.Range("C17").Value = ws.Range("C3").Value
+wd.Range("C17").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D17").Value = ws.Range("C3").Value
+wd.Range("D17").Interior.Color = RGB(255, 255, 0)
+End If
+
+'PAT Margin
+If ws.Range("C4").Value < 0.015 Then
+'wd.Range("E18").Value = ws.Range("C4").Value
+wd.Range("E18").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("C4").Value > 0.03 Then
+'wd.Range("C18").Value = ws.Range("C4").Value
+wd.Range("C18").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D18").Value = ws.Range("C4").Value
+wd.Range("D18").Interior.Color = RGB(255, 255, 0)
+End If
+
+'ROCE
+If ws.Range("C5").Value < 0.09 Then
+'wd.Range("E19").Value = ws.Range("C5").Value
+wd.Range("E19").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("C3").Value > 0.12 Then
+'wd.Range("C19").Value = ws.Range("C5").Value
+wd.Range("C19").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D19").Value = ws.Range("C5").Value
+wd.Range("D19").Interior.Color = RGB(255, 255, 0)
+End If
+
+'Interest coverage ration (ISCR)
+
+ws.Range("B22").Value = ws.Range("B22").Value / 100
+If ws.Range("B22").Value < 1.5 Then
+'wd.Range("E20").Value = ws.Range("B22").Value
+wd.Range("E20").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("B22").Value > 2 Then
+'wd.Range("C20").Value = ws.Range("B22").Value
+wd.Range("C20").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D20").Value = ws.Range("B22").Value
+wd.Range("D20").Interior.Color = RGB(255, 255, 0)
+End If
+
+'DSCR
+If ws.Range("C14").Value < 1 Then
+'wd.Range("E21").Value = ws.Range("C14").Value
+wd.Range("E21").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("C14").Value > 5 Then
+'wd.Range("C21").Value = ws.Range("C14").Value
+wd.Range("C21").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D21").Value = ws.Range("C14").Value
+wd.Range("D21").Interior.Color = RGB(255, 255, 0)
+End If
+
+'DER
+If ws.Range("B24").Value > 2.5 Then
+'wd.Range("E22").Value = ws.Range("B24").Value
+wd.Range("E22").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("B24").Value < 2 Then
+'wd.Range("C22").Value = ws.Range("B24").Value
+wd.Range("C22").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D22").Value = ws.Range("B24").Value
+wd.Range("D22").Interior.Color = RGB(255, 255, 0)
+End If
+
+'NCA/TD
+If ws.Range("C13").Value < 9 Then
+'wd.Range("E23").Value = ws.Range("C13").Value
+wd.Range("E23").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("C13").Value > 12 Then
+'wd.Range("C23").Value = ws.Range("C13").Value
+wd.Range("C23").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D23").Value = ws.Range("C13").Value
+wd.Range("D23").Interior.Color = RGB(255, 255, 0)
+End If
+
+'TOL/TNW
+If ws.Range("C16").Value > 3.5 Then
+'wd.Range("E24").Value = ws.Range("C16").Value
+wd.Range("E24").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("C16").Value < 2.5 Then
+'wd.Range("C24").Value = ws.Range("C16").Value
+wd.Range("C24").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D24").Value = ws.Range("C16").Value
+wd.Range("D24").Interior.Color = RGB(255, 255, 0)
+End If
+
+'Current Ratio
+If ws.Range("C10").Value < 1.25 Then
+'wd.Range("E25").Value = ws.Range("C10").Value
+wd.Range("E25").Interior.Color = RGB(255, 0, 0)
+ElseIf ws.Range("C10").Value > 1.33 Then
+'wd.Range("C25").Value = ws.Range("C10").Value
+wd.Range("C25").Interior.Color = RGB(146, 208, 80)
+Else
+'wd.Range("D25").Value = ws.Range("C10").Value
+wd.Range("D25").Interior.Color = RGB(255, 255, 0)
+End If
+
+'Net Worth
+'If ws.Range("C3").Value < 0.03 Then
+'wd.Range("C26").Interior.Color = RGB(255, 0, 0)
+'ElseIf ws.Range("C3").Value > 0.05 Then
+'wd.Range("C26").Interior.Color = RGB(146, 208, 80)
+'Else
+'wd.Range("C26").Interior.Color = RGB(255, 255, 0)
+'End If
+
+If wbs.Worksheets("Business Profile").Range("C3").Value = "Automobile" Then
+
+    'OPBDIT Margin
+    If ws.Range("C3").Value < 0.025 Then
+ '   wd.Range("E17").Value = ws.Range("C3").Value
+    wd.Range("E17").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("C3").Value > 0.045 Then
+  '  wd.Range("C17").Value = ws.Range("C3").Value
+    wd.Range("C17").Interior.Color = RGB(146, 208, 80)
+    Else
+   ' wd.Range("D17").Value = ws.Range("C3").Value
+    wd.Range("D17").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'PAT Margin
+    If ws.Range("C4").Value < 0.005 Then
+    'wd.Range("E18").Value = ws.Range("C4").Value
+    wd.Range("E18").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("C4").Value > 0.015 Then
+    'wd.Range("C18").Value = ws.Range("C4").Value
+    wd.Range("C18").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D18").Value = ws.Range("C4").Value
+    wd.Range("D18").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'ROCE
+    If ws.Range("C5").Value < 0.1 Then
+    'wd.Range("E19").Value = ws.Range("C5").Value
+    wd.Range("E19").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("C3").Value > 0.15 Then
+    'wd.Range("C19").Value = ws.Range("C5").Value
+    wd.Range("C19").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D19").Value = ws.Range("C5").Value
+    wd.Range("D19").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'Interest coverage ration (ISCR)
+    
+    ws.Range("B22").Value = ws.Range("B22").Value / 100
+    If ws.Range("B22").Value < 2 Then
+    'wd.Range("E20").Value = ws.Range("B22").Value
+    wd.Range("E20").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("B22").Value > 3 Then
+    'wd.Range("C20").Value = ws.Range("B22").Value
+    wd.Range("C20").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D20").Value = ws.Range("B22").Value
+    wd.Range("D20").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'DSCR
+    If ws.Range("C14").Value < 1 Then
+    'wd.Range("E21").Value = ws.Range("C14").Value
+    wd.Range("E21").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("C14").Value > 5 Then
+    'wd.Range("C21").Value = ws.Range("C14").Value
+    wd.Range("C21").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D21").Value = ws.Range("C14").Value
+    wd.Range("D21").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'DER
+    If ws.Range("B24").Value > 2.5 Then
+    'wd.Range("E22").Value = ws.Range("B24").Value
+    wd.Range("E22").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("B24").Value < 2 Then
+    'wd.Range("C22").Value = ws.Range("B24").Value
+    wd.Range("C22").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D22").Value = ws.Range("B24").Value
+    wd.Range("D22").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'NCA/TD
+    If ws.Range("C13").Value < 10 Then
+    'wd.Range("E23").Value = ws.Range("C13").Value
+    wd.Range("E23").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("C13").Value > 15 Then
+    'wd.Range("C23").Value = ws.Range("C13").Value
+    wd.Range("C23").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D23").Value = ws.Range("C13").Value
+    wd.Range("D23").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'TOL/TNW
+    If ws.Range("C16").Value > 3.5 Then
+    'wd.Range("E24").Value = ws.Range("C16").Value
+    wd.Range("E24").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("C16").Value < 2.5 Then
+    'wd.Range("C24").Value = ws.Range("C16").Value
+    wd.Range("C24").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D24").Value = ws.Range("C16").Value
+    wd.Range("D24").Interior.Color = RGB(255, 255, 0)
+    End If
+    
+    'Current Ratio
+    If ws.Range("C10").Value < 1 Then
+    'wd.Range("E25").Value = ws.Range("C10").Value
+    wd.Range("E25").Interior.Color = RGB(255, 0, 0)
+    ElseIf ws.Range("C10").Value > 1.25 Then
+    'wd.Range("C25").Value = ws.Range("C10").Value
+    wd.Range("C25").Interior.Color = RGB(146, 208, 80)
+    Else
+    'wd.Range("D25").Value = ws.Range("C10").Value
+    wd.Range("D25").Interior.Color = RGB(255, 255, 0)
+    End If
+
+End If
+
+
+
+wd.Protect Password:="crisilcamnc"
+
+
+For i = 1 To 2
+If i = 2 Then i = 3
+Set wd = wsm.Worksheets("Score Model " & i)
+Set ws = wbs.Worksheets("Ratio - CRISIL(1)")
+
+wd.Unprotect Password:="crisilcamnc"
+wd.Range("C5:D53").ClearContents
+
+' OPBDIT
+
+    wd.Range("B5").Value = ws.Range("C3").Value
+    If ws.Range("C3") < 0 Then
+    wd.Range("C11:D11").Value = "-"
+    ElseIf ws.Range("C3") <= 0.0075 And ws.Range("C3") >= 0 Then
+    wd.Range("C10:D10").Value = 3
+    ElseIf ws.Range("C3") <= 0.015 Then
+    wd.Range("C9:D9").Value = 6
+    ElseIf ws.Range("C3") <= 0.025 Then
+    wd.Range("C8:D8").Value = 9
+    ElseIf ws.Range("C3") <= 0.03 Then
+    wd.Range("C7:D7").Value = 12
+    Else
+    wd.Range("C6:D6").Value = 15
+    End If
+
+' RoCE
+
+    wd.Range("B12").Value = ws.Range("C5").Value
+    If ws.Range("C5") < 0.06 Then
+    wd.Range("C18:D18").Value = "-"
+    ElseIf ws.Range("C5") <= 0.09 Then
+    wd.Range("C17:D17").Value = 5
+    ElseIf ws.Range("C5") <= 0.12 Then
+    wd.Range("C16:D16").Value = 10
+    ElseIf ws.Range("C5") <= 0.15 Then
+    wd.Range("C15:D15").Value = 15
+    ElseIf ws.Range("C5") <= 0.2 Then
+    wd.Range("C14:D14").Value = 20
+    Else
+    wd.Range("C13:D13").Value = 25
+    End If
+
+'TOL/TNW
+
+    wd.Range("B20").Value = ws.Range("C16").Value
+    If ws.Range("C16") > 6 Then
+    wd.Range("C26:D26").Value = "-"
+    ElseIf ws.Range("C16") >= 4.5 Then
+    wd.Range("C25:D25").Value = 4
+    ElseIf ws.Range("C16") >= 3.5 Then
+    wd.Range("C24:D24").Value = 8
+    ElseIf ws.Range("C16") >= 2.5 Then
+    wd.Range("C23:D23").Value = 12
+    ElseIf ws.Range("C16") >= 1.5 Then
+    wd.Range("C22:D22").Value = 16
+    Else
+    wd.Range("C21:D21").Value = 20
+    End If
+
+'NCA/TD
+
+    wd.Range("B28").Value = ws.Range("C13").Value
+    If ws.Range("C13") < 6 Then
+    wd.Range("C34:D34").Value = "-"
+    ElseIf ws.Range("C13") <= 9 Then
+    wd.Range("C33:D33").Value = 3
+    ElseIf ws.Range("C13") <= 15 Then
+    wd.Range("C32:D32").Value = 6
+    ElseIf ws.Range("C13") <= 18 Then
+    wd.Range("C31:D31").Value = 9
+    ElseIf ws.Range("C13") <= 24 Then
+    wd.Range("C30:D30").Value = 12
+    Else
+    wd.Range("C29:D29").Value = 15
+    End If
+
+'Working Capital
+
+    wd.Range("B36").Value = ws.Range("C8").Value
+    If ws.Range("C8") > 45 Then
+    wd.Range("C43:D43").Value = 0
+    ElseIf ws.Range("C8") >= 30 Then
+    wd.Range("C42:D42").Value = 2.5
+    ElseIf ws.Range("C8") >= 21 Then
+    wd.Range("C41:D41").Value = 5
+    ElseIf ws.Range("C8") >= 15 Then
+    wd.Range("C40:D40").Value = 7.5
+    ElseIf ws.Range("C8") >= 7 Then
+    wd.Range("C39:D39").Value = 10
+    Else
+    wd.Range("C38:D38").Value = 12.5
+    End If
+    
+'Inventory
+
+    wd.Range("B47").Value = ws.Range("C7").Value
+    If ws.Range("C7") > 60 Then
+    wd.Range("C53:D53").Value = 0
+    ElseIf ws.Range("C7") >= 45 Then
+    wd.Range("C52:D52").Value = 2.5
+    ElseIf ws.Range("C7") >= 30 Then
+    wd.Range("C51:D51").Value = 5
+    ElseIf ws.Range("C7") >= 21 Then
+    wd.Range("C50:D50").Value = 7.5
+    ElseIf ws.Range("C7") >= 15 Then
+    wd.Range("C49:D49").Value = 10
+    Else
+    wd.Range("C48:D48").Value = 12.5
+    End If
+    Calculate
+    wd.Protect Password:="crisilcamnc"
+Next i
+
+
+Set wd = wsm.Worksheets("Score Model 2")
+Set ws = wbs.Worksheets("Ratio - CRISIL(1)")
+
+wd.Unprotect Password:="crisilcamnc"
+wd.Range("C95:D143").ClearContents
+
+' OPBDIT
+
+    'wd.Range("B5").Value = ws.Range("C3").Value
+    If ws.Range("C3") < 0 Then
+    wd.Range("C101:D101").Value = "-"
+    ElseIf ws.Range("C3") <= 0.0075 And ws.Range("C3") >= 0 Then
+    wd.Range("C100:D100").Value = 3
+    ElseIf ws.Range("C3") <= 0.015 Then
+    wd.Range("C99:D99").Value = 6
+    ElseIf ws.Range("C3") <= 0.025 Then
+    wd.Range("C98:D98").Value = 9
+    ElseIf ws.Range("C3") <= 0.03 Then
+    wd.Range("C97:D97").Value = 12
+    Else
+    wd.Range("C96:D96").Value = 15
+    End If
+
+' RoCE
+
+    'wd.Range("B12").Value = ws.Range("C5").Value
+    If ws.Range("C5") < 0.06 Then
+    wd.Range("C108:D108").Value = "-"
+    ElseIf ws.Range("C5") <= 0.09 Then
+    wd.Range("C107:D107").Value = 5
+    ElseIf ws.Range("C5") <= 0.12 Then
+    wd.Range("C106:D106").Value = 10
+    ElseIf ws.Range("C5") <= 0.15 Then
+    wd.Range("C105:D105").Value = 15
+    ElseIf ws.Range("C5") <= 0.2 Then
+    wd.Range("C104:D104").Value = 20
+    Else
+    wd.Range("C103:D103").Value = 25
+    End If
+
+'TOL/TNW
+
+    wd.Range("B20").Value = ws.Range("C16").Value
+    If ws.Range("C16") > 6 Then
+    wd.Range("C116:D116").Value = "-"
+    ElseIf ws.Range("C16") >= 4.5 Then
+    wd.Range("C115:D115").Value = 4
+    ElseIf ws.Range("C16") >= 3.5 Then
+    wd.Range("C114:D114").Value = 8
+    ElseIf ws.Range("C16") >= 2.5 Then
+    wd.Range("C113:D113").Value = 12
+    ElseIf ws.Range("C16") >= 1.5 Then
+    wd.Range("C112:D112").Value = 16
+    Else
+    wd.Range("C111:D111").Value = 20
+    End If
+
+'NCA/TD
+
+    wd.Range("B28").Value = ws.Range("C13").Value
+    If ws.Range("C13") < 6 Then
+    wd.Range("C124:D124").Value = "-"
+    ElseIf ws.Range("C13") <= 9 Then
+    wd.Range("C123:D123").Value = 3
+    ElseIf ws.Range("C13") <= 15 Then
+    wd.Range("C122:D122").Value = 6
+    ElseIf ws.Range("C13") <= 18 Then
+    wd.Range("C121:D121").Value = 9
+    ElseIf ws.Range("C13") <= 24 Then
+    wd.Range("C120:D120").Value = 12
+    Else
+    wd.Range("C119:D119").Value = 15
+    End If
+
+'Working Capital
+
+    wd.Range("B36").Value = ws.Range("C8").Value
+    If ws.Range("C8") > 45 Then
+    wd.Range("C133:D133").Value = 0
+    ElseIf ws.Range("C8") >= 30 Then
+    wd.Range("C132:D132").Value = 2.5
+    ElseIf ws.Range("C8") >= 21 Then
+    wd.Range("C131:D131").Value = 5
+    ElseIf ws.Range("C8") >= 15 Then
+    wd.Range("C130:D130").Value = 7.5
+    ElseIf ws.Range("C8") >= 7 Then
+    wd.Range("C129:D129").Value = 10
+    Else
+    wd.Range("C128:D128").Value = 12.5
+    End If
+    
+'Inventory
+
+    wd.Range("B47").Value = ws.Range("C7").Value
+    If ws.Range("C7") > 60 Then
+    wd.Range("C143:D143").Value = 0
+    ElseIf ws.Range("C7") >= 45 Then
+    wd.Range("C142:D142").Value = 2.5
+    ElseIf ws.Range("C7") >= 30 Then
+    wd.Range("C141:D141").Value = 5
+    ElseIf ws.Range("C7") >= 21 Then
+    wd.Range("C140:D140").Value = 7.5
+    ElseIf ws.Range("C7") >= 15 Then
+    wd.Range("C139:D139").Value = 10
+    Else
+    wd.Range("C138:D138").Value = 12.5
+    End If
+    Calculate
+    
+    
+    str = wbs.Worksheets("Business Profile").Range("D13").Value
+j = DateDiff("m", DateValue(str), Date)
+y = (j / 12) - 1
+    
+    ' enterprenurial track
+If y < 3 Then
+wd.Range("C12:D12").Value = 5
+ElseIf y < 7 Then
+wd.Range("C11:D11").Value = 10
+ElseIf y < 10 Then
+wd.Range("C10:D10").Value = 15
+ElseIf y > 10 Then
+wd.Range("C9:D9").Value = 20
+End If
+
+    ' sales growth
+If ws.Range("B21") / 100 < 10 Then
+    wd.Range("C65:D65").Value = 12
+    ElseIf ws.Range("B21") < 15 Then
+    wd.Range("C64:D64").Value = 18
+    ElseIf ws.Range("B21") < 20 Then
+    wd.Range("C63:D63").Value = 24
+    ElseIf ws.Range("B21") > 20 Then
+    wd.Range("C62:D62").Value = 30
+    ElseIf ws.Range("B21") < 0 Then
+    wd.Range("C62:D62").Value = 6
+End If
+    
+    
+    wd.Protect Password:="crisilcamnc"
+
+
+
+
+'...... end of small report scoring
+
+defaultFileName = Left(wbs.name, 8)
+
+''''''''''' color gradient
+
+Dim pointer As Shape
+    Dim gradientRange As Range
+    Dim pointerPosition As Double
+    'Dim rng As Range
+    Dim pic As Object
+
+'Set w_pointer = Workbooks.Open("W:\My Documents\Macros\Formats\Financials\Crisil\Scoring Meter.xlsm", False)
+Set ws = Workbooks.Open("W:\Shared With Me\Macros\Formats\Financials\Crisil\Scoring Meter.xlsm", False)
+    Set pointer = w_pointer.Worksheets("Sheet1").Shapes("Flowchart: Merge 7")
+    Set gradientRange = w_pointer.Worksheets("Sheet1").Range("D2:CZ2")
+    w_pointer.Worksheets("Sheet1").Range("A1").Value = wsm.Worksheets("Input").Range("J5").Value
+    ' Calculate the pointer position based on the given value
+    pointerPosition = w_pointer.Worksheets("Sheet1").Range("A1").Value - 2
+    'pointerPosition = val - 4
+    
+    ' Calculate the position of the pointer within the gradient range
+    pointer.Left = gradientRange.Left + (pointerPosition / 100 * gradientRange.Width)
+    'Set ws = w_pointer.Worksheets("Sheet1")
+    Set rng = w_pointer.Worksheets("Sheet1").Range("D2:CZ2")
+
+    ' Copy the range as a picture
+   ' rng.CopyPicture Format:=xlBitmap
+    rng.CopyPicture Appearance:=xlScreen, Format:=xlPicture
+
+    ' Create a picture object
+      Set pic = w_pointer.Worksheets("Sheet1").Pictures.Paste
+    'Set pic = w_pointer.Worksheets(1).Pictures.Paste
+
+    ' Position the picture in cell DB4
+    pic.Top = w_pointer.Worksheets("Sheet1").Range("DB4").Top
+    pic.Left = w_pointer.Worksheets("Sheet1").Range("DB4").Left
+    
+    pic.ShapeRange.LockAspectRatio = msoFalse
+    pic.ShapeRange.RelativeHorizontalSize = 1 ' xlAbsolute
+    pic.ShapeRange.RelativeVerticalSize = 1
+
+' Adjust the scale height and scale width
+pic.ShapeRange.ScaleHeight 1.32, msoFalse, msoScaleFromTopLeft
+pic.ShapeRange.ScaleWidth 0.86, msoFalse, msoScaleFromTopLeft
+    
+    
+    ' Return the picture object
+    'Set MovePointer = pic
+    
+    ' Check if the pic object is Nothing before attempting to copy and paste
+    If Not pic Is Nothing Then
+        pic.Copy
+        wsm.Worksheets("Scoring-SmallReport").Unprotect Password:="crisilcamnc"
+        
+        wsm.Worksheets("Scoring-SmallReport").Range("D5").PasteSpecial
+        Application.CutCopyMode = False ' Clear the clipboard
+        
+        ' Release the object reference
+    
+    End If
+
+
+
+'''''''''''end of color gradient
+
+
+
+'wsm.Worksheets("Input").Range("J5").Value = wsm.Worksheets("Scoring-MedReport").Range("B5").Value
+wsm.Worksheets("Scoring - ComprehensiveReport").Visible = xlSheetVeryHidden
+wsm.Worksheets("Scoring-MedReport").Visible = xlSheetVeryHidden
+wbd.Worksheets("T-1").Activate
+
+With wbd.Worksheets("T-3")
+.Activate
+'ActiveWindow.DisplayGridlines = False
+
+'wsm.Worksheets("Scoring-SmallReport").Unprotect Password:="crisilcamnc"
+'wsm.Worksheets("Scoring-SmallReport").Range("B4:E26").Copy
+wsm.Worksheets("Scoring-SmallReport").Range("B4:E26").CopyPicture Appearance:=xlScreen, Format:=xlPicture
+.Range("B4").PasteSpecial
+'.Range("B4").PasteSpecial Paste:=xlPasteAllUsingSourceTheme, Operation:=xlNone, SkipBlanks:=False, Transpose:=False
+.Rows("9:9").RowHeight = 42
+'.Range("B4:E26").Cells.Delete Shift:=xlShiftToLeft
+'.Range("B4:E26").CopyPicture Appearance:=xlScreen, Format:=xlPicture
+
+ 'wbd.Worksheets("T-3").Paste Destination:=Range("B4")
+ .Range("B4:E26").Cells.Delete Shift:=xlShiftToLeft
+.Range("M2").Select
+
+ x = 40
+        y = 6
+        Print_view_Setup x, y
+
+End With
+        
+wsm.Worksheets("Input").Protect Password:="crisilcamnc"
+wsm.Worksheets("Scoring-SmallReport").Protect Password:="crisilcamnc"
+wsm.SaveAs "ScoreModel_QFPRsmall_" & Format(Now(), "ddmmyyyy_hhmmss"), FileFormat:=51
+wsm.Close
+w_pointer.Close
+wfc.Close
+wbd.SaveAs defaultFileName & "_QFPRsmall_" & Format(Now(), "ddmmyyyy_hhmmss"), FileFormat:=51
+MsgBox "File saved."
+
+
+Application.ScreenUpdating = True
+Application.EnableEvents = True
+Application.DisplayAlerts = True
+Application.Calculation = xlCalculationAutomatic
+
+
+End Sub

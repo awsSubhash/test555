@@ -1,0 +1,1 @@
+cmd.exe /C tiff2pdf.exe -o out.pdf -p A4 -j -f testing1.tif
